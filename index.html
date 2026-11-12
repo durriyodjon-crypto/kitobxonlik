@@ -161,11 +161,15 @@ const ms = ts => ts && ts.toMillis ? ts.toMillis() : null;
 let testing = false, finishing = false, startedHere = false, resumeCounted = false, saveTimer = null, tick = null;
 
 /* ---------- Kirish (anonim) va kuzatish ---------- */
+let unsubA = null;
 onAuthStateChanged(auth, u => {
   if (!u) { signInAnonymously(auth).catch(() => message("📡", "Ulanib bo'lmadi", "Internetni tekshirib, sahifani yangilang.")); return; }
-  if (uid) return;
-  uid = u.uid;
-  onSnapshot(doc(db, "tests", tid, "attempts", uid), s => { A = s.exists() ? s.data({ serverTimestamps: "estimate" }) : null; route(); }, () => { A = null; route(); });
+  if (u.uid === uid) return;
+  // Kirish o'zgardi (masalan, shu brauzerda admin panelga kirildi): yangi foydalanuvchi bilan qayta kuzatamiz
+  if (testing) { location.reload(); return; }
+  uid = u.uid; A = undefined;
+  if (unsubA) unsubA();
+  unsubA = onSnapshot(doc(db, "tests", tid, "attempts", uid), s => { A = s.exists() ? s.data({ serverTimestamps: "estimate" }) : null; route(); }, () => { A = null; route(); });
 });
 onSnapshot(tref, s => {
   if (!s.exists()) { T = false; route(); return; }
@@ -229,8 +233,13 @@ $("regForm").onsubmit = async e => {
   if (!klass) return $("formErr").textContent = "Sinfingizni yozing.";
   if (!$("fAgree").checked) return $("formErr").textContent = "Davom etish uchun qoidalarga rozilik belgisini qo'ying.";
   $("startBtn").disabled = true; $("startBtn").textContent = "Boshlanmoqda…";
+  let duplicate = false;
   try {
+    if (!auth.currentUser || auth.currentUser.uid !== uid) throw { code: "stale" };
     const idKey = await sha([name, region, district, school, klass].map(norm).join("|"));
+    // Shu ism, hudud, maktab va sinf bilan test avval boshlanganmi?
+    const lock = await getDoc(doc(db, "tests", tid, "locks", idKey));
+    if (lock.exists() && lock.data().uid !== uid) { duplicate = true; throw { code: "duplicate" }; }
     const batch = writeBatch(db);
     batch.set(doc(db, "tests", tid, "locks", idKey), { uid, at: serverTimestamp() });
     batch.set(doc(db, "tests", tid, "attempts", uid), {
@@ -242,9 +251,11 @@ $("regForm").onsubmit = async e => {
     try { localStorage.setItem("kitob-" + tid, "1"); } catch(e) {}
   } catch (err) {
     startedHere = false;
-    $("formErr").textContent = err.code === "permission-denied"
-      ? "Testni boshlab bo'lmadi: bu ism-familiya, maktab va sinf bilan test avval topshirilgan. Xato bo'lsa, boshlovchiga murojaat qiling."
-      : "Ulanib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.";
+    $("formErr").textContent = duplicate
+      ? "Bu ism-familiya, maktab va sinf bilan test avval topshirilgan. Testni faqat bir marta topshirish mumkin. Xato bo'lsa, boshlovchiga murojaat qiling."
+      : err.code === "permission-denied" || err.code === "stale"
+        ? "Testni boshlab bo'lmadi. Sahifani yangilang (↻) va qayta urinib ko'ring. Takrorlansa, boshlovchiga murojaat qiling."
+        : "Ulanib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.";
   } finally { $("startBtn").disabled = false; $("startBtn").textContent = "Testni boshlash"; }
 };
 

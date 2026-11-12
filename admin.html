@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitobxonlik Admin Paneli</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer}
+.item:hover{border-color:var(--accent)}
+.linkbox{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#f6f1e8;border-radius:12px;padding:10px 12px;margin-top:14px}
+.linkbox code{flex:1 1 260px;overflow-wrap:anywhere;font-size:14px}
+.key{display:inline-block;min-width:26px;text-align:center;border-radius:6px;background:var(--ok);color:#fff;font-weight:800}
+.confirm{background:var(--bad-soft);border:1px solid var(--bad);border-radius:12px;padding:12px 14px;margin-top:14px}
+td.optc{min-width:110px}
+td.optc.right{background:var(--ok-soft);font-weight:700}
+.sumrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.searchrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.searchrow input,.searchrow select{flex:1 1 200px;width:auto}
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <div class="topbar">
+    <div class="rowx">
+      <div class="logo">📖 Kitobxonlik · Admin</div>
+      <div class="kelajak"><img src="kelajak-logo.jpg" alt="Kelajak markazlari logotipi" onerror="this.remove()"><span>Ishlab chiqaruvchi<b>«Kelajak» markazi</b></span></div>
+    </div>
+    <div class="rowx hidden" id="userBar"><span class="muted" id="userEmail"></span><button id="logoutBtn">Chiqish</button></div>
+  </div>
+
+  <section id="vNoConfig" class="card hidden"><h2>Firebase sozlanmagan</h2><p class="muted">firebase-config.js fayliga sozlamalarni qo'ying.</p></section>
+
+  <section id="vLogin" class="card hidden" style="max-width:460px;margin:30px auto">
+    <div id="studentHint" class="notice hidden" style="margin-bottom:18px">
+      <p style="margin:0 0 10px;font-weight:700">O'quvchimisiz? Bu sahifa faqat boshlovchi uchun.</p>
+      <a class="btn primary" id="studentLink" href="index.html">Testga o'tish →</a>
+    </div>
+    <h2 style="margin-bottom:14px">Admin kirishi</h2>
+    <form id="loginForm" class="stack">
+      <label class="field">Email<input type="email" id="lEmail" required autocomplete="username"></label>
+      <label class="field">Parol<input type="password" id="lPass" required autocomplete="current-password"></label>
+      <button class="primary" type="submit">Kirish</button>
+      <div class="err" id="loginErr"></div>
+    </form>
+  </section>
+
+  <!-- Testlar ro'yxati -->
+  <section id="vTests" class="hidden">
+    <div class="grid2" style="align-items:start">
+      <div class="card">
+        <h2 style="margin-bottom:14px">Yangi test yaratish</h2>
+        <form id="newForm" class="stack">
+          <label class="field">Kitob nomi<input type="text" id="nTitle" required placeholder="Masalan: Kichkina shahzoda"></label>
+          <label class="field">Muallif<input type="text" id="nAuthor" placeholder="Masalan: Antuan de Sent-Ekzyuperi"></label>
+          <div class="grid2">
+            <label class="field">Vaqt (daqiqa)<input type="number" id="nDur" min="5" max="180" value="25"></label>
+            <label class="field">Necha marta chiqilsa yakunlansin<input type="number" id="nLeaves" min="1" max="10" value="3"></label>
+          </div>
+          <button class="primary" type="submit">Yaratish</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2 style="margin-bottom:14px">Testlar va natijalar</h2>
+        <div class="list" id="testsList"><p class="muted">Yuklanmoqda…</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bitta test -->
+  <section id="vTest" class="hidden">
+    <div class="card">
+      <div class="rowx" style="justify-content:space-between">
+        <div class="rowx"><button id="backBtn">← Testlar</button><h2 id="tName" style="font-size:22px"></h2><span class="pill" id="tStatus"></span></div>
+        <div class="rowx">
+          <button class="primary" id="startBtn">▶ Testni boshlash</button>
+          <button class="dangerfill hidden" id="stopBtn">■ Testni yakunlash</button>
+          <button id="delBtn">🗑 O'chirish</button>
+        </div>
+      </div>
+      <p class="muted" id="tMeta" style="margin:8px 0 0"></p>
+      <div class="linkbox">
+        <span class="muted">O'quvchilar uchun havola:</span>
+        <code id="link"></code>
+        <button id="copyBtn">Nusxalash</button>
+        <a class="btn tg" id="tgBtn" href="#" target="_blank" rel="noopener">✈ Telegram'da yuborish</a>
+      </div>
+      <div class="confirm hidden" id="confirmBox">
+        <div class="rowx"><span id="confirmText" style="font-weight:700"></span><button class="dangerfill" id="confirmYes">Ha</button><button id="confirmNo">Yo'q</button></div>
+      </div>
+    </div>
+
+    <nav class="tabs" id="tabs">
+      <button data-t="results" aria-pressed="true">Natijalar</button>
+      <button data-t="questions">Savollar</button>
+    </nav>
+
+    <div id="pResults">
+      <div class="sumrow" id="summary"></div>
+      <div class="searchrow">
+        <input type="text" id="search" placeholder="Ism, maktab yoki tuman bo'yicha qidirish">
+        <select id="fRegion"><option value="">Barcha viloyatlar</option></select>
+        <button id="exportBtn">⬇ Excel uchun yuklab olish (CSV)</button>
+      </div>
+      <div class="tablewrap"><table id="rTable"></table></div>
+    </div>
+
+    <div id="pQuestions" class="card hidden">
+      <div class="rowx" style="justify-content:space-between;margin-bottom:12px">
+        <label class="btn primary" style="cursor:pointer">📂 CSV faylni yuklash<input type="file" id="csvInput" accept=".csv,text/csv" class="hidden"></label>
+        <span class="muted" id="csvInfo">Har bir qator: savol; A; B; C; D; to'g'ri javob (A/B/C/D); ball</span>
+      </div>
+      <div class="tablewrap"><table id="qTable"></table></div>
+    </div>
+  </section>
+
+  <footer class="credit">
+    <img src="kelajak-logo.jpg" alt="Kelajak markazlari logotipi" onerror="this.remove()">
+    <p>Ushbu dastur <b>Sayxunobod tumani «Kelajak» markazi</b> tomonidan ishlab chiqilgan.</p>
+  </footer>
+</div>
+<div class="toast hidden" id="toast"></div>
+
+<script type="module">
+import { firebaseConfig } from "./firebase-config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, collection, addDoc, setDoc, updateDoc, getDocs, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const VIEWS = ["vNoConfig","vLogin","vTests","vTest"];
+const show = v => VIEWS.forEach(x => $(x).classList.toggle("hidden", x !== v));
+function toast(t){ const el = $("toast"); el.textContent = t; el.classList.remove("hidden"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.add("hidden"), 2800); }
+function fail(e){ console.error(e); toast(e && e.code === "permission-denied" ? "Ruxsat yo'q: admin emailini tekshiring" : "Xatolik: " + (e.message || e)); }
+const statusText = s => ({ draft: "Tayyorlanmoqda", live: "Jonli", finished: "Yakunlangan" }[s] || s);
+const LET = ["A","B","C","D"];
+
+if (!firebaseConfig.apiKey) { show("vNoConfig"); throw new Error("config"); }
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+/* ---------- Kirish ---------- */
+$("loginForm").onsubmit = async e => {
+  e.preventDefault(); $("loginErr").textContent = "";
+  try { await signInWithEmailAndPassword(auth, $("lEmail").value.trim(), $("lPass").value); }
+  catch { $("loginErr").textContent = "Email yoki parol noto'g'ri."; }
+};
+$("logoutBtn").onclick = () => signOut(auth);
+onAuthStateChanged(auth, u => {
+  const t = new URLSearchParams(location.search).get("t");
+  if (!u || u.isAnonymous) {
+    closeTest(); show("vLogin");
+    $("studentHint").classList.toggle("hidden", !t);
+    if (t) $("studentLink").href = "index.html?t=" + encodeURIComponent(t);
+    $("userBar").classList.add("hidden");
+    return;
+  }
+  $("userBar").classList.remove("hidden"); $("userEmail").textContent = u.email;
+  t ? openTest(t) : showTests();
+});
+
+/* ---------- Testlar ro'yxati ---------- */
+async function showTests(){
+  closeTest(); show("vTests"); history.replaceState(null, "", location.pathname);
+  try {
+    const s = await getDocs(query(collection(db, "tests"), orderBy("createdAt", "desc")));
+    $("testsList").innerHTML = s.empty ? `<p class="muted">Hali test yaratilmagan.</p>` : s.docs.map(d => {
+      const t = d.data(), date = t.createdAt ? t.createdAt.toDate().toLocaleDateString("uz-UZ") : "";
+      return `<div class="item" data-id="${d.id}"><div><b>${esc(t.title)}</b> <span class="pill ${t.status}">${statusText(t.status)}</span>
+        <div class="muted" style="font-size:14px">${date} · ${t.qcount || 0} ta savol · ${t.durationMin} daqiqa</div></div><span>→</span></div>`;
+    }).join("");
+  } catch (e) { fail(e); }
+}
+$("testsList").addEventListener("click", e => { const it = e.target.closest(".item"); if (it) openTest(it.dataset.id); });
+$("newForm").onsubmit = async e => {
+  e.preventDefault();
+  try {
+    const ref = await addDoc(collection(db, "tests"), {
+      title: $("nTitle").value.trim(), author: $("nAuthor").value.trim(), status: "draft", createdAt: serverTimestamp(),
+      durationMin: Math.max(5, Math.min(180, Math.round(+$("nDur").value || 25))),
+      maxLeaves: Math.max(1, Math.min(10, Math.round(+$("nLeaves").value || 3))),
+      qcount: 0, maxScore: 0, breakdown: {}
+    });
+    $("newForm").reset(); openTest(ref.id);
+  } catch (err) { fail(err); }
+};
+
+/* ---------- Bitta test ---------- */
+let tid = null, T = null, QS = [], KEY = [], ATT = [], unsub = [];
+const tref = () => doc(db, "tests", tid);
+function closeTest(){ unsub.forEach(f => f()); unsub = []; tid = null; T = null; QS = []; KEY = []; ATT = []; }
+function openTest(id){
+  closeTest(); tid = id; show("vTest");
+  history.replaceState(null, "", "?t=" + id);
+  const link = new URL("index.html?t=" + id, location.href).href;
+  $("link").textContent = link;
+  unsub.push(onSnapshot(tref(), s => { if (!s.exists()) { toast("Test topilmadi"); showTests(); return; } T = s.data(); renderHead(); renderResults(); }, fail));
+  unsub.push(onSnapshot(doc(db, "tests", id, "content", "questions"), s => { QS = s.exists() ? s.data().items : []; renderQuestions(); renderResults(); }, fail));
+  unsub.push(onSnapshot(doc(db, "tests", id, "content", "key"), s => { KEY = s.exists() ? s.data().k : []; renderQuestions(); renderResults(); }, fail));
+  unsub.push(onSnapshot(collection(db, "tests", id, "attempts"), s => { ATT = s.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: "estimate" }) })); renderResults(); }, fail));
+  const t = setInterval(renderResults, 15000); unsub.push(() => clearInterval(t));
+}
+$("backBtn").onclick = showTests;
+$("copyBtn").onclick = () => navigator.clipboard.writeText($("link").textContent).then(() => toast("Havola nusxalandi"), () => toast("Havolani qo'lda belgilab nusxalang"));
+$("tabs").addEventListener("click", e => {
+  const t = e.target.dataset && e.target.dataset.t; if (!t) return;
+  $("pResults").classList.toggle("hidden", t !== "results"); $("pQuestions").classList.toggle("hidden", t !== "questions");
+  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.t === t));
+});
+let pending = null;
+function ask(text, fn){ pending = fn; $("confirmText").textContent = text; $("confirmBox").classList.remove("hidden"); }
+$("confirmYes").onclick = () => { $("confirmBox").classList.add("hidden"); const f = pending; pending = null; f && f(); };
+$("confirmNo").onclick = () => { $("confirmBox").classList.add("hidden"); pending = null; };
+
+$("startBtn").onclick = () => {
+  if (!QS.length) return toast("Avval «Savollar» bo'limida CSV faylni yuklang");
+  ask(T.status === "finished" ? "Test qayta ochilsinmi? Avval topshirganlar qayta topshira olmaydi." : "Test boshlansinmi? Havola shu zahoti ishlay boshlaydi.",
+    () => updateDoc(tref(), { status: "live" }).then(() => toast("Test boshlandi")).catch(fail));
+};
+$("stopBtn").onclick = () => ask("Test yakunlansinmi? Yangi o'quvchilar kira olmaydi, natijalar saqlanadi.", () => updateDoc(tref(), { status: "finished" }).then(() => toast("Test yakunlandi")).catch(fail));
+$("delBtn").onclick = () => ask(`«${T.title}» testi va uning barcha natijalari butunlay o'chirilsinmi? Buni qaytarib bo'lmaydi.`, async () => {
+  const id = tid;
+  try {
+    closeTest();
+    for (const sub of ["attempts", "locks", "content"]) { const s = await getDocs(collection(db, "tests", id, sub)); for (const d of s.docs) await deleteDoc(d.ref); }
+    await deleteDoc(doc(db, "tests", id)); toast("Test o'chirildi"); showTests();
+  } catch (e) { fail(e); }
+});
+
+function renderHead(){
+  $("tName").textContent = T.title;
+  $("tStatus").className = "pill " + T.status; $("tStatus").textContent = statusText(T.status);
+  $("tMeta").textContent = [T.author, `${T.qcount || 0} ta savol`, `maksimal ${T.maxScore || 0} ball`, `${T.durationMin} daqiqa`, `${T.maxLeaves} marta chiqilsa yakunlanadi`].filter(Boolean).join(" · ");
+  $("startBtn").classList.toggle("hidden", T.status === "live");
+  $("startBtn").textContent = T.status === "finished" ? "↺ Qayta ochish" : "▶ Testni boshlash";
+  $("stopBtn").classList.toggle("hidden", T.status !== "live");
+  $("tgBtn").href = "https://t.me/share/url?url=" + encodeURIComponent($("link").textContent) + "&text=" + encodeURIComponent(`«${T.title}» kitobi bo'yicha test. Ism-familiyangizni yozib, testni boshlang. Testni faqat bir marta topshirish mumkin!`);
+}
+
+/* ---------- Savollar (CSV) ---------- */
+// Standart CSV o'quvchi: qo'shtirnoqlar, ; yoki , ajratuvchi
+function parseRows(text){
+  text = text.replace(/^﻿/, "");
+  const first = text.split(/\r?\n/)[0] || "";
+  const delim = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ";" : ",";
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === delim) { row.push(f); f = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; }
+    else f += c;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  return { rows, delim };
+}
+function parseQuestions(text){
+  let { rows, delim } = parseRows(text);
+  // Butun qator qo'shtirnoq ichida saqlangan bo'lsa (Excel xatosi), ichini qayta o'qiymiz
+  rows = rows.map(r => (r.length === 1 && r[0].includes(delim)) ? parseRows(r[0]).rows[0] : r);
+  const out = [], bad = [];
+  rows.forEach((r, n) => {
+    const c = r.map(x => (x || "").trim());
+    if (!c.some(Boolean)) return;
+    // Javob ustuni: bitta harf (A, B, C yoki D); «A)», «a.» kabi yozuvlar ham qabul qilinadi
+    const k = (c[5] || "").toUpperCase().replace(/[\s.)]/g, "");
+    if (!c[0] || !/^[ABCD]$/.test(k)) { if (n > 0) bad.push(n + 1); return; }   // birinchi qator sarlavha bo'lsa, jim o'tkazib yuboriladi
+    const opts = [c[1], c[2], c[3], c[4]].map(x => x || "");
+    if (!opts[LET.indexOf(k)]) { bad.push(n + 1); return; }
+    const b = parseInt(c[6], 10);
+    out.push({ q: c[0], o: opts, b: b > 0 && b <= 100 ? b : 1, k });
+  });
+  return { items: out, bad };
+}
+function readText(file){
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = ev => { const t = ev.target.result; if (!t.includes("�")) return res(t); const r2 = new FileReader(); r2.onload = e2 => res(e2.target.result); r2.readAsText(file, "windows-1251"); };
+    r.readAsText(file, "UTF-8");
+  });
+}
+$("csvInput").addEventListener("change", async e => {
+  const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+  if (ATT.length) return toast("Bu testni o'quvchilar topshirgan: savollarni almashtirib bo'lmaydi. Yangi test yarating.");
+  const { items, bad } = parseQuestions(await readText(file));
+  if (!items.length) { $("csvInfo").innerHTML = `<span class="err">«${esc(file.name)}» faylida savol topilmadi. Format: savol; A; B; C; D; javob harfi; ball</span>`; return; }
+  const breakdown = {}; let max = 0;
+  items.forEach(x => { breakdown[x.b] = (breakdown[x.b] || 0) + 1; max += x.b; });
+  try {
+    await setDoc(doc(db, "tests", tid, "content", "questions"), { items: items.map(({ q, o, b }) => ({ q, o, b })) });
+    await setDoc(doc(db, "tests", tid, "content", "key"), { k: items.map(x => x.k) });
+    await updateDoc(tref(), { qcount: items.length, maxScore: max, breakdown });
+    $("csvInfo").innerHTML = `<span class="okt">✓ «${esc(file.name)}»: ${items.length} ta savol, maksimal ${max} ball</span>` + (bad.length ? ` <span class="err">· O'qilmagan qatorlar: ${bad.slice(0, 15).join(", ")}</span>` : "");
+  } catch (err) { fail(err); }
+});
+function renderQuestions(){
+  $("qTable").innerHTML = QS.length ? `<tr><th>#</th><th>Savol</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Javob</th><th>Ball</th></tr>` +
+    QS.map((q, i) => `<tr><td>${i + 1}</td><td style="min-width:260px">${esc(q.q)}</td>${q.o.map((o, k) => `<td class="optc ${KEY[i] === LET[k] ? "right" : ""}">${esc(o)}</td>`).join("")}<td><span class="key">${esc(KEY[i] || "?")}</span></td><td class="num">${q.b}</td></tr>`).join("")
+    : `<tr><td class="muted" style="padding:16px">Savollar hali yuklanmagan.</td></tr>`;
+}
+
+/* ---------- Natijalar ---------- */
+function scoreOf(a){
+  let s = 0, r = 0;
+  QS.forEach((q, i) => { const g = a.answers && a.answers[i]; if (g && g === KEY[i]) { s += q.b; r++; } });
+  return { s, r };
+}
+function stateOf(a){
+  if (a.finished) return a.reason ? { t: a.reason, c: a.reason.startsWith("Saytdan") ? "bad" : "okp" } : { t: "Yakunladi", c: "okp" };
+  const end = (a.startedAt ? a.startedAt.toMillis() : Date.now()) + T.durationMin * 60000;
+  if (Date.now() > end) return { t: "Vaqt tugagan (yakunlamagan)", c: "bad" };
+  return { t: `Jarayonda · ${Math.ceil((end - Date.now()) / 60000)} daq qoldi`, c: "run" };
+}
+function rows(){
+  const q = $("search").value.trim().toLowerCase(), reg = $("fRegion").value;
+  return ATT.map(a => ({ a, ...scoreOf(a), st: stateOf(a) }))
+    .filter(x => (!reg || x.a.region === reg) && (!q || [x.a.name, x.a.school, x.a.district, x.a.klass].join(" ").toLowerCase().includes(q)))
+    .sort((x, y) => y.s - x.s || (x.a.finishedAt && y.a.finishedAt ? x.a.finishedAt.toMillis() - y.a.finishedAt.toMillis() : 0));
+}
+function dur(a){ if (!a.finished || !a.finishedAt || !a.startedAt) return "—"; const s = Math.max(0, Math.min(T.durationMin * 60, Math.round((a.finishedAt.toMillis() - a.startedAt.toMillis()) / 1000))); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function renderResults(){
+  if (!T) return;
+  const regs = [...new Set(ATT.map(a => a.region))].sort();
+  const curReg = $("fRegion").value;
+  $("fRegion").innerHTML = `<option value="">Barcha viloyatlar</option>` + regs.map(r => `<option ${r === curReg ? "selected" : ""}>${esc(r)}</option>`).join("");
+  const all = ATT.map(a => ({ a, ...scoreOf(a) }));
+  const done = ATT.filter(a => a.finished).length;
+  const avg = all.length ? (all.reduce((t, x) => t + x.s, 0) / all.length).toFixed(1) : "—";
+  const best = all.length ? Math.max(...all.map(x => x.s)) : "—";
+  $("summary").innerHTML = `
+    <div class="stat"><b>${ATT.length}</b><span>qatnashchi</span></div>
+    <div class="stat"><b>${done}</b><span>yakunlagan</span></div>
+    <div class="stat"><b>${ATT.length - done}</b><span>jarayonda / yakunlamagan</span></div>
+    <div class="stat"><b>${avg}</b><span>o'rtacha ball (max ${T.maxScore || 0})</span></div>
+    <div class="stat"><b>${best}</b><span>eng yuqori ball</span></div>`;
+  const R = rows();
+  $("rTable").innerHTML = `<tr><th>O'rin</th><th>Ism familiya</th><th>Maktab</th><th>Sinf</th><th>Tuman</th><th>Viloyat</th><th>Ball</th><th>To'g'ri</th><th>Chiqish</th><th>Vaqt</th><th>Holat</th><th></th></tr>` +
+    (R.length ? R.map((x, i) => `<tr>
+      <td class="num">${i + 1}</td><td><b>${esc(x.a.name)}</b></td><td>${esc(x.a.school)}</td><td>${esc(x.a.klass)}</td><td>${esc(x.a.district)}</td><td>${esc(x.a.region)}</td>
+      <td class="num"><b>${x.s}</b> / ${T.maxScore || 0}</td><td class="num">${x.r} / ${QS.length}</td>
+      <td class="num">${x.a.leaves || 0}</td><td class="num">${dur(x.a)}</td>
+      <td><span class="pill ${x.st.c}">${esc(x.st.t)}</span></td>
+      <td><button class="danger" data-reset="${x.a.id}" title="Natijani o'chirib, qayta topshirishga ruxsat berish">Qayta ruxsat</button></td></tr>`).join("")
+    : `<tr><td colspan="12" class="muted" style="padding:16px">Hali hech kim test topshirmagan.</td></tr>`);
+}
+$("search").oninput = renderResults;
+$("fRegion").onchange = renderResults;
+$("rTable").addEventListener("click", e => {
+  const b = e.target.closest("[data-reset]"); if (!b) return;
+  const a = ATT.find(x => x.id === b.dataset.reset); if (!a) return;
+  ask(`${a.name} natijasi o'chirilib, unga qayta topshirishga ruxsat berilsinmi?`, async () => {
+    try { await deleteDoc(doc(db, "tests", tid, "locks", a.idKey)); await deleteDoc(doc(db, "tests", tid, "attempts", a.id)); toast("Ruxsat berildi: o'quvchi testni qaytadan topshira oladi"); }
+    catch (err) { fail(err); }
+  });
+});
+$("exportBtn").onclick = () => {
+  const head = ["O'rin", "Ism familiya", "Viloyat", "Tuman", "Maktab", "Sinf", "Ball", "Maksimal", "To'g'ri javoblar", "Saytdan chiqish", "Sarflangan vaqt", "Holat"];
+  const data = rows().map((x, i) => [i + 1, x.a.name, x.a.region, x.a.district, x.a.school, x.a.klass, x.s, T.maxScore || 0, x.r, x.a.leaves || 0, dur(x.a), x.st.t]);
+  const csv = "﻿" + [head, ...data].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = (T.title || "kitobxonlik").replace(/[\\/:*?"<>|]/g, "") + " natijalar.csv";
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+</script>
+</body>
+</html>

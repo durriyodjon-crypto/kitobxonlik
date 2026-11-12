@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Kitobxonlik testi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Test paytidagi yuqori panel -->
+<div class="testbar hidden" id="testBar">
+  <div class="row">
+    <div><span class="muted" style="color:#d9cbb8">Qolgan vaqt</span> <span class="clock" id="clock">--:--</span></div>
+    <div style="font-weight:700"><span id="answeredInfo"></span> · Ogohlantirish: <span id="leaveInfo"></span></div>
+  </div>
+  <div class="reminder">⚠️ Test davomida saytdan chiqmang! Boshqa ilova yoki oynaga o'tish qayd etiladi. <span id="leaveRule"></span></div>
+</div>
+
+<div class="wrap">
+  <header class="brand">
+    <div class="bookicon" aria-hidden="true">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/></svg>
+    </div>
+    <h1 id="tTitle">Kitobxonlik testi</h1>
+    <div class="sub" id="tSub"></div>
+    <div class="center-name">«Kelajak» markazi · Sayxunobod tumani</div>
+  </header>
+
+  <!-- Xabar (kutish, xato) -->
+  <section id="vMsg" class="card" style="text-align:center">
+    <div style="font-size:46px" id="msgIcon">⏳</div>
+    <h2 id="msgTitle" style="margin:6px 0">Yuklanmoqda…</h2>
+    <p class="muted" id="msgText" style="margin:0"></p>
+  </section>
+
+  <!-- Ro'yxatdan o'tish -->
+  <section id="vForm" class="card hidden">
+    <form id="regForm" class="stack" novalidate>
+      <label class="field">Ism familiya
+        <input type="text" id="fName" maxlength="80" autocomplete="name" placeholder="Masalan: Alisher Navoiy" required>
+      </label>
+      <div class="grid2">
+        <label class="field">Viloyat<select id="fRegion" required></select></label>
+        <label class="field">Tuman (shahar)<select id="fDistrict" required></select></label>
+      </div>
+      <label class="field hidden" id="fOtherWrap">Tuman nomini yozing
+        <input type="text" id="fOther" maxlength="80" placeholder="Masalan: Oqoltin tumani">
+      </label>
+      <div class="grid2">
+        <label class="field">Maktab<input type="text" id="fSchool" maxlength="80" placeholder="Masalan: 12-maktab" required></label>
+        <label class="field">Sinf<input type="text" id="fKlass" maxlength="20" placeholder="Masalan: 9-A" required></label>
+      </div>
+      <div class="notice"><b>Diqqat!</b> Testni faqat <b>bir marta</b> topshirish mumkin. Test davomida boshqa sahifa, ilova yoki oynaga o'tish qayd etiladi. <span id="ruleText"></span></div>
+      <div class="info" id="testInfo"></div>
+      <label class="check"><input type="checkbox" id="fAgree"> Ma'lumotlarim to'g'ri. Qoidalar bilan tanishdim va testni bir marta topshirishimni bilaman.</label>
+      <div class="err" id="formErr"></div>
+      <button class="primary big" type="submit" id="startBtn">Testni boshlash</button>
+    </form>
+  </section>
+
+  <!-- Test -->
+  <section id="vTest" class="hidden">
+    <div class="card">
+      <div class="rowx" style="justify-content:space-between">
+        <span class="qnum" id="qNum"></span>
+        <span class="pill run" id="qBall"></span>
+      </div>
+      <div class="qtext" id="qText"></div>
+      <div class="opts" id="opts"></div>
+      <div class="nav">
+        <button id="prevBtn">← Oldingi</button>
+        <button class="primary" id="nextBtn">Keyingi →</button>
+      </div>
+      <div class="dots" id="dots"></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div id="finishAsk">
+        <button class="dangerfill big" id="finishBtn">Testni yakunlash</button>
+      </div>
+      <div id="finishConfirm" class="hidden stack" style="text-align:center">
+        <p style="margin:0;font-weight:700" id="finishText"></p>
+        <div class="rowx" style="justify-content:center">
+          <button class="dangerfill" id="finishYes">Ha, yakunlash</button>
+          <button id="finishNo">Testga qaytish</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Natija -->
+  <section id="vResult" class="card hidden" style="text-align:center">
+    <div style="font-size:46px">📖</div>
+    <h2 id="resName" style="margin:4px 0 2px"></h2>
+    <p class="muted" id="resWhere" style="margin:0 0 14px"></p>
+    <div id="resScoreBox">
+      <div class="score" id="resScore"></div>
+      <div class="muted" style="margin-top:6px">to'plangan ball</div>
+    </div>
+    <p id="resNote" class="muted" style="margin:10px 0 0"></p>
+    <div class="stats" id="resStats"></div>
+    <p class="muted" style="margin-top:16px;font-size:14px">Test faqat bir marta topshiriladi. Natijangiz boshlovchida saqlandi.</p>
+  </section>
+
+  <footer class="credit">
+    <img src="kelajak-logo.jpg" alt="Kelajak markazlari logotipi" onerror="this.remove()">
+    <p>Ushbu dastur <b>Sayxunobod tumani «Kelajak» markazi</b> tomonidan ishlab chiqilgan.</p>
+  </footer>
+</div>
+
+<!-- Saytdan chiqish ogohlantirishi -->
+<div class="modal hidden" id="leaveModal">
+  <div class="card stack">
+    <div class="warnicon">⚠️</div>
+    <h2 id="leaveTitle">Siz test sahifasidan chiqdingiz!</h2>
+    <p style="margin:0" id="leaveText"></p>
+    <button class="primary big" id="leaveOk">Testni davom ettirish</button>
+  </div>
+</div>
+<div class="toast hidden" id="toast"></div>
+
+<script type="module">
+import { firebaseConfig } from "./firebase-config.js";
+import { HUDUDLAR, STANDART_VILOYAT, STANDART_TUMAN } from "./hududlar.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, onSnapshot, writeBatch, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const VIEWS = ["vMsg","vForm","vTest","vResult"];
+const show = v => VIEWS.forEach(x => $(x).classList.toggle("hidden", x !== v));
+const LET = ["A","B","C","D"];
+function message(icon, title, text){ $("msgIcon").textContent = icon; $("msgTitle").textContent = title; $("msgText").textContent = text || ""; show("vMsg"); }
+function toast(t){ const el = $("toast"); el.textContent = t; el.classList.remove("hidden"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.add("hidden"), 2600); }
+
+if (!firebaseConfig.apiKey) { message("⚙️", "Sayt hali sozlanmagan", "Boshlovchi Firebase sozlamalarini kiritishi kerak."); throw new Error("config"); }
+const tid = new URLSearchParams(location.search).get("t");
+if (!tid) { message("🔗", "Havola to'liq emas", "Boshlovchidan test havolasini so'rang."); throw new Error("t yo'q"); }
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const tref = doc(db, "tests", tid);
+
+let T = null, A = undefined, uid = null, Q = null, order = [], ans = {}, cur = 0, leaves = 0;
+
+/* Qurilma soati noto'g'ri bo'lishi mumkin: vaqtni sayt serveri soati bilan tenglashtiramiz */
+let skew = 0;
+const now = () => Date.now() + skew;
+(async () => {
+  try {
+    const t0 = Date.now();
+    const r = await fetch(location.pathname + "?soat=" + t0, { method: "HEAD", cache: "no-store" });
+    const t1 = Date.now(), d = Date.parse(r.headers.get("Date"));
+    if (d) skew = d + 500 - (t0 + t1) / 2;
+  } catch (e) {}
+})();
+const ms = ts => ts && ts.toMillis ? ts.toMillis() : null;
+let testing = false, finishing = false, startedHere = false, resumeCounted = false, saveTimer = null, tick = null;
+
+/* ---------- Kirish (anonim) va kuzatish ---------- */
+onAuthStateChanged(auth, u => {
+  if (!u) { signInAnonymously(auth).catch(() => message("📡", "Ulanib bo'lmadi", "Internetni tekshirib, sahifani yangilang.")); return; }
+  if (uid) return;
+  uid = u.uid;
+  onSnapshot(doc(db, "tests", tid, "attempts", uid), s => { A = s.exists() ? s.data({ serverTimestamps: "estimate" }) : null; route(); }, () => { A = null; route(); });
+});
+onSnapshot(tref, s => {
+  if (!s.exists()) { T = false; route(); return; }
+  T = s.data(); route();
+}, () => message("📡", "Ulanib bo'lmadi", "Internetni tekshirib, sahifani yangilang."));
+
+function route(){
+  if (T === null || A === undefined) return;
+  if (T === false) return message("❓", "Test topilmadi", "Havola eskirgan yoki noto'g'ri. Boshlovchidan yangi havolani so'rang.");
+  $("tTitle").textContent = T.title || "Kitobxonlik testi";
+  $("tSub").textContent = T.author ? T.author + " asari bo'yicha test" : "";
+  document.title = (T.title || "Kitobxonlik") + " · Test";
+  // Admin «Qayta ruxsat» berib, urinishni o'chirgan bo'lsa: sahifa yana ro'yxatdan o'tishga qaytadi
+  if (!A && finishing) { finishing = false; testing = false; startedHere = false; resumeCounted = false; Q = null; ans = {}; cur = 0; leaves = 0; }
+  if (A && A.finished) { if (!finishing) showResult(); return; }
+  if (A && !A.finished) { if (!testing && !finishing) resumeTest(); return; }
+  if (T.status === "draft") return message("⏳", "Test hali boshlanmagan", "Boshlovchi start berishi bilan bu sahifa o'zi ochiladi. Sahifani yopmang.");
+  if (T.status === "finished") return message("🔒", "Test yakunlangan", "Bu testni topshirish muddati tugagan.");
+  if (!testing && !finishing) showForm();
+}
+
+/* ---------- Ro'yxatdan o'tish ---------- */
+let formReady = false;
+function showForm(){
+  show("vForm");
+  const max = T.maxLeaves || 3;
+  $("ruleText").textContent = `${max} marta chiqilsa, test avtomatik yakunlanadi.`;
+  const br = T.breakdown || {};
+  $("testInfo").innerHTML = `<b>Test haqida:</b><ul>
+    <li>Jami ${T.qcount || 0} ta savol</li>
+    ${Object.keys(br).sort((a, b) => a - b).map(b => `<li>${b} ballik savollar: ${br[b]} ta</li>`).join("")}
+    <li>Maksimal ball: ${T.maxScore || 0}</li>
+    <li>Vaqt: ${T.durationMin} daqiqa</li></ul>`;
+  if (formReady) return;
+  formReady = true;
+  $("fRegion").innerHTML = Object.keys(HUDUDLAR).map(r => `<option ${r === STANDART_VILOYAT ? "selected" : ""}>${esc(r)}</option>`).join("");
+  fillDistricts(STANDART_TUMAN);
+}
+function fillDistricts(pre){
+  const list = HUDUDLAR[$("fRegion").value] || [];
+  $("fDistrict").innerHTML = `<option value="" disabled ${pre ? "" : "selected"}>— Tanlang —</option>` +
+    list.map(d => `<option ${d === pre ? "selected" : ""}>${esc(d)}</option>`).join("") + `<option value="__other">Boshqa (qo'lda yozish)</option>`;
+  $("fOtherWrap").classList.add("hidden");
+}
+$("fRegion").onchange = () => fillDistricts(null);
+$("fDistrict").onchange = () => $("fOtherWrap").classList.toggle("hidden", $("fDistrict").value !== "__other");
+
+const norm = s => s.toLowerCase().replace(/[ʻʼ‘’`´]/g, "'").replace(/\s+/g, " ").trim();
+async function sha(s){ const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 40); }
+
+$("regForm").onsubmit = async e => {
+  e.preventDefault(); $("formErr").textContent = "";
+  const name = $("fName").value.replace(/\s+/g, " ").trim();
+  const region = $("fRegion").value;
+  const district = $("fDistrict").value === "__other" ? $("fOther").value.replace(/\s+/g, " ").trim() : $("fDistrict").value;
+  const school = $("fSchool").value.replace(/\s+/g, " ").trim();
+  const klass = $("fKlass").value.replace(/\s+/g, " ").trim();
+  if (name.length < 5 || !name.includes(" ")) return $("formErr").textContent = "Ism va familiyangizni to'liq yozing.";
+  if (!district) return $("formErr").textContent = "Tumanni tanlang.";
+  if (!school) return $("formErr").textContent = "Maktabingizni yozing.";
+  if (!klass) return $("formErr").textContent = "Sinfingizni yozing.";
+  if (!$("fAgree").checked) return $("formErr").textContent = "Davom etish uchun qoidalarga rozilik belgisini qo'ying.";
+  $("startBtn").disabled = true; $("startBtn").textContent = "Boshlanmoqda…";
+  try {
+    const idKey = await sha([name, region, district, school, klass].map(norm).join("|"));
+    const batch = writeBatch(db);
+    batch.set(doc(db, "tests", tid, "locks", idKey), { uid, at: serverTimestamp() });
+    batch.set(doc(db, "tests", tid, "attempts", uid), {
+      name, region, district, school, klass, idKey, startedAt: serverTimestamp(),
+      answers: {}, leaves: 0, finished: false, finishedAt: null, reason: null
+    });
+    startedHere = true;
+    await batch.commit();
+    try { localStorage.setItem("kitob-" + tid, "1"); } catch(e) {}
+  } catch (err) {
+    startedHere = false;
+    $("formErr").textContent = err.code === "permission-denied"
+      ? "Testni boshlab bo'lmadi: bu ism-familiya, maktab va sinf bilan test avval topshirilgan. Xato bo'lsa, boshlovchiga murojaat qiling."
+      : "Ulanib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.";
+  } finally { $("startBtn").disabled = false; $("startBtn").textContent = "Testni boshlash"; }
+};
+
+/* ---------- Test ---------- */
+function seeded(str){ let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return () => { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; }; }
+
+async function resumeTest(){
+  testing = true;
+  try {
+    if (!Q) Q = (await getDoc(doc(db, "tests", tid, "content", "questions"))).data().items;
+  } catch (e) {
+    testing = false;
+    // Test yopilgan: savollarni o'qib bo'lmaydi, saqlangan javoblar bilan urinishni yakunlaymiz
+    ans = { ...(A.answers || {}) }; leaves = A.leaves || 0;
+    return finish("Test boshlovchi tomonidan yopildi");
+  }
+  const rnd = seeded(uid + tid);
+  order = Q.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  ans = { ...(A.answers || {}) };
+  leaves = A.leaves || 0;
+  show("vTest"); $("testBar").classList.remove("hidden");
+  window.scrollTo(0, 0);
+  renderQ();
+  clearInterval(tick); tick = setInterval(drawClock, 500); drawClock();
+  // Sahifa qayta yuklangan yoki boshqa joyda ochilgan bo'lsa: bu ham saytdan chiqish
+  if (!startedHere && !resumeCounted) { resumeCounted = true; addLeave("Sahifa qayta ochildi. Bu saytdan chiqish deb hisoblandi."); }
+}
+function maxLeaves(){ return T.maxLeaves || 3; }
+function endMs(){ return (ms(A.startedAt) || now()) + T.durationMin * 60000; }
+function drawClock(){
+  if (!testing) return;
+  const left = Math.max(0, Math.min(T.durationMin * 60, Math.round((endMs() - now()) / 1000)));
+  $("clock").textContent = String(Math.floor(left / 60)).padStart(2, "0") + ":" + String(left % 60).padStart(2, "0");
+  $("clock").classList.toggle("low", left <= 60);
+  if (left <= 0) finish("Vaqt tugadi");
+}
+function renderQ(){
+  const qi = order[cur], q = Q[qi];
+  $("qNum").textContent = `${cur + 1}-savol / ${Q.length}`;
+  $("qBall").textContent = q.b + " ball";
+  $("qText").textContent = q.q;
+  $("opts").innerHTML = q.o.map((o, k) => o === "" ? "" : `<button class="opt ${ans[qi] === LET[k] ? "sel" : ""}" data-l="${LET[k]}"><span class="let">${LET[k]}</span><span class="t">${esc(o)}</span></button>`).join("");
+  $("prevBtn").disabled = cur === 0;
+  $("nextBtn").textContent = cur === Q.length - 1 ? "Oxirgi savol" : "Keyingi →";
+  $("nextBtn").disabled = cur === Q.length - 1;
+  $("dots").innerHTML = order.map((qj, i) => `<button class="dot ${ans[qj] ? "ans" : ""} ${i === cur ? "cur" : ""}" data-i="${i}" aria-label="${i + 1}-savol">${i + 1}</button>`).join("");
+  const done = Object.keys(ans).length;
+  $("answeredInfo").textContent = `${done}/${Q.length} javob`;
+  $("leaveInfo").textContent = `${leaves}/${maxLeaves()}`;
+  $("leaveRule").textContent = `${maxLeaves()} marta chiqilsa, test yakunlanadi.`;
+}
+$("opts").addEventListener("click", e => {
+  const b = e.target.closest(".opt"); if (!b || !testing) return;
+  ans[order[cur]] = b.dataset.l; renderQ(); scheduleSave();
+});
+$("dots").addEventListener("click", e => { const b = e.target.closest(".dot"); if (b) { cur = +b.dataset.i; renderQ(); } });
+$("prevBtn").onclick = () => { if (cur > 0) { cur--; renderQ(); } };
+$("nextBtn").onclick = () => { if (cur < Q.length - 1) { cur++; renderQ(); window.scrollTo({ top: 0, behavior: "smooth" }); } };
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { if (testing) updateDoc(doc(db, "tests", tid, "attempts", uid), { answers: ans }).catch(() => toast("Javob saqlanmadi. Internetni tekshiring.")); }, 800);
+}
+$("finishBtn").onclick = () => {
+  const left = Q.length - Object.keys(ans).length;
+  $("finishText").textContent = left ? `Siz ${left} ta savolga javob bermadingiz. Testni yakunlaysizmi? Keyin qayta kirib bo'lmaydi.` : "Barcha savollarga javob berdingiz. Testni yakunlaysizmi?";
+  $("finishAsk").classList.add("hidden"); $("finishConfirm").classList.remove("hidden");
+};
+$("finishNo").onclick = () => { $("finishAsk").classList.remove("hidden"); $("finishConfirm").classList.add("hidden"); };
+$("finishYes").onclick = () => finish(null);
+
+/* ---------- Saytdan chiqishni kuzatish ---------- */
+let lastLeave = 0;
+function onLeave(){
+  if (!testing || finishing) return;
+  const now = Date.now(); if (now - lastLeave < 1500) return; lastLeave = now;
+  addLeave(null);
+}
+function addLeave(text){
+  leaves++;
+  if (leaves >= maxLeaves()) { finish(`Saytdan ${maxLeaves()} marta chiqildi`); return; }
+  updateDoc(doc(db, "tests", tid, "attempts", uid), { leaves, answers: ans }).catch(() => {});
+  const rest = maxLeaves() - leaves;
+  $("leaveTitle").textContent = `Ogohlantirish: ${leaves}/${maxLeaves()}`;
+  $("leaveText").textContent = (text || "Siz test sahifasidan chiqdingiz. Bu qayd etildi.") + ` Yana ${rest} marta chiqsangiz, test avtomatik yakunlanadi.`;
+  $("leaveModal").classList.remove("hidden");
+  renderQ();
+}
+$("leaveOk").onclick = () => $("leaveModal").classList.add("hidden");
+document.addEventListener("visibilitychange", () => { if (document.hidden) onLeave(); });
+window.addEventListener("blur", onLeave);
+window.addEventListener("beforeunload", e => { if (testing && !finishing) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- Yakunlash va natija ---------- */
+async function finish(reason){
+  if (finishing) return;
+  finishing = true; testing = false; clearInterval(tick); clearTimeout(saveTimer);
+  $("leaveModal").classList.add("hidden"); $("testBar").classList.add("hidden");
+  message("⏳", "Javoblaringiz yuborilmoqda…", "Sahifani yopmang.");
+  try {
+    await updateDoc(doc(db, "tests", tid, "attempts", uid), { answers: ans, leaves, finished: true, finishedAt: serverTimestamp(), reason: reason || null });
+  } catch (e) { /* vaqt juda o'tib ketgan bo'lsa yozib bo'lmaydi: javoblar avvaldan saqlangan */ }
+  showResult(reason);
+}
+async function showResult(reason){
+  finishing = true; testing = false; clearInterval(tick);
+  $("testBar").classList.add("hidden");
+  const a = A || {};
+  $("resName").textContent = a.name || "";
+  $("resWhere").textContent = [a.school, a.klass ? a.klass + "-sinf" : "", a.district, a.region].filter(Boolean).join(" · ");
+  const why = reason || a.reason;
+  $("resNote").textContent = why ? "Test yakunlandi: " + why + "." : "";
+  try {
+    const [qs, ks] = await Promise.all([
+      Q ? Promise.resolve(Q) : getDoc(doc(db, "tests", tid, "content", "questions")).then(s => s.data().items),
+      getDoc(doc(db, "tests", tid, "content", "key")).then(s => s.data().k)
+    ]);
+    const given = (a.finished ? a.answers : ans) || {};
+    let score = 0, right = 0, max = 0;
+    qs.forEach((q, i) => { max += q.b; if (given[i] && given[i] === ks[i]) { score += q.b; right++; } });
+    $("resScoreBox").classList.remove("hidden");
+    $("resScore").innerHTML = `${score}<small> / ${max}</small>`;
+    const st = ms(a.startedAt), fin = a.finished ? ms(a.finishedAt) : now();
+    const used = st && fin ? Math.max(0, Math.min(T.durationMin * 60, Math.round((fin - st) / 1000))) : null;
+    $("resStats").innerHTML = `
+      <div class="stat"><b>${right} / ${qs.length}</b><span>to'g'ri javob</span></div>
+      <div class="stat"><b>${Object.keys(given).length}</b><span>javob berilgan</span></div>
+      ${used !== null ? `<div class="stat"><b>${Math.floor(used / 60)} daq ${used % 60} s</b><span>sarflangan vaqt</span></div>` : ""}
+      <div class="stat"><b>${a.leaves || 0}</b><span>saytdan chiqish</span></div>`;
+  } catch (e) {
+    $("resScoreBox").classList.add("hidden");
+    $("resStats").innerHTML = "";
+    $("resNote").textContent = (why ? "Test yakunlandi: " + why + ". " : "") + "Javoblaringiz saqlangan. Natijangizni boshlovchidan bilib oling.";
+  }
+  show("vResult");
+}
+</script>
+</body>
+</html>

@@ -167,7 +167,7 @@ onAuthStateChanged(auth, u => {
   if (u.uid === uid) return;
   // Kirish o'zgardi (masalan, shu brauzerda admin panelga kirildi): yangi foydalanuvchi bilan qayta kuzatamiz
   if (testing) { location.reload(); return; }
-  uid = u.uid; A = undefined;
+  uid = u.uid; A = undefined; permCache = {};
   if (unsubA) unsubA();
   unsubA = onSnapshot(doc(db, "tests", tid, "attempts", uid), s => { A = s.exists() ? s.data({ serverTimestamps: "estimate" }) : null; route(); }, () => { A = null; route(); });
 });
@@ -183,7 +183,7 @@ function route(){
   $("tSub").textContent = T.author ? T.author + " asari bo'yicha test" : "";
   document.title = (T.title || "Kitobxonlik") + " · Test";
   // Admin «Qayta ruxsat» berib, urinishni o'chirgan bo'lsa: sahifa yana ro'yxatdan o'tishga qaytadi
-  if (!A && finishing) { finishing = false; testing = false; startedHere = false; resumeCounted = false; Q = null; ans = {}; cur = 0; leaves = 0; }
+  if (!A && finishing) { finishing = false; testing = false; startedHere = false; resumeCounted = false; Q = null; ans = {}; cur = 0; leaves = 0; permCache = {}; }
   if (A && A.finished) { if (!finishing) showResult(); return; }
   if (A && !A.finished) { if (!testing && !finishing) resumeTest(); return; }
   if (T.status === "draft") return message("⏳", "Test hali boshlanmagan", "Boshlovchi start berishi bilan bu sahifa o'zi ochiladi. Sahifani yopmang.");
@@ -294,12 +294,24 @@ function drawClock(){
   $("clock").classList.toggle("low", left <= 60);
   if (left <= 0) finish("Vaqt tugadi");
 }
+/* Variantlar tartibi: har bir o'quvchi uchun aralashtiriladi (to'g'ri javob doim bir harfda turmasligi uchun).
+   Ekranda A, B, C, D ko'rinadi, lekin javob asl harf bilan saqlanadi, shuning uchun baholash o'zgarmaydi. */
+let permCache = {};
+function optOrder(qi){
+  if (permCache[qi]) return permCache[qi];
+  const idx = Q[qi].o.map((o, k) => o !== "" ? k : -1).filter(k => k >= 0);
+  if (T.shuffleOpts !== false) {
+    const r = seeded(uid + tid + "v" + qi);
+    for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+  }
+  return permCache[qi] = idx;
+}
 function renderQ(){
   const qi = order[cur], q = Q[qi];
   $("qNum").textContent = `${cur + 1}-savol / ${Q.length}`;
   $("qBall").textContent = q.b + " ball";
   $("qText").textContent = q.q;
-  $("opts").innerHTML = q.o.map((o, k) => o === "" ? "" : `<button class="opt ${ans[qi] === LET[k] ? "sel" : ""}" data-l="${LET[k]}"><span class="let">${LET[k]}</span><span class="t">${esc(o)}</span></button>`).join("");
+  $("opts").innerHTML = optOrder(qi).map((k, p) => `<button class="opt ${ans[qi] === LET[k] ? "sel" : ""}" data-l="${LET[k]}"><span class="let">${LET[p]}</span><span class="t">${esc(q.o[k])}</span></button>`).join("");
   $("prevBtn").disabled = cur === 0;
   $("nextBtn").textContent = cur === Q.length - 1 ? "Oxirgi savol" : "Keyingi →";
   $("nextBtn").disabled = cur === Q.length - 1;

@@ -114,6 +114,7 @@ td.optc.right{background:var(--ok-soft);font-weight:700}
         <label class="btn primary" style="cursor:pointer">📂 CSV faylni yuklash<input type="file" id="csvInput" accept=".csv,text/csv" class="hidden"></label>
         <span class="muted" id="csvInfo">Har bir qator: savol; A; B; C; D; to'g'ri javob (A/B/C/D); ball</span>
       </div>
+      <label class="check" style="margin-bottom:12px"><input type="checkbox" id="shuffleOpts"> Har bir o'quvchiga variantlar tartibini aralashtirib ko'rsatish (to'g'ri javob doim bir harfda turmaydi)</label>
       <div class="tablewrap"><table id="qTable"></table></div>
     </div>
   </section>
@@ -240,6 +241,7 @@ function renderHead(){
   $("startBtn").classList.toggle("hidden", T.status === "live");
   $("startBtn").textContent = T.status === "finished" ? "↺ Qayta ochish" : "▶ Testni boshlash";
   $("stopBtn").classList.toggle("hidden", T.status !== "live");
+  $("shuffleOpts").checked = T.shuffleOpts !== false;   // eski testlarda ham standart holatda yoqilgan
   $("tgBtn").href = "https://t.me/share/url?url=" + encodeURIComponent($("link").textContent) + "&text=" + encodeURIComponent(`«${T.title}» kitobi bo'yicha test. Ism-familiyangizni yozib, testni boshlang. Testni faqat bir marta topshirish mumkin!`);
 }
 
@@ -297,9 +299,19 @@ $("csvInput").addEventListener("change", async e => {
     await setDoc(doc(db, "tests", tid, "content", "questions"), { items: items.map(({ q, o, b }) => ({ q, o, b })) });
     await setDoc(doc(db, "tests", tid, "content", "key"), { k: items.map(x => x.k) });
     await updateDoc(tref(), { qcount: items.length, maxScore: max, breakdown });
-    $("csvInfo").innerHTML = `<span class="okt">✓ «${esc(file.name)}»: ${items.length} ta savol, maksimal ${max} ball</span>` + (bad.length ? ` <span class="err">· O'qilmagan qatorlar: ${bad.slice(0, 15).join(", ")}</span>` : "");
+    // Ko'pchilik to'g'ri javob bitta harfda bo'lsa, ogohlantiramiz
+    const cnt = {}; items.forEach(x => cnt[x.k] = (cnt[x.k] || 0) + 1);
+    const [topL, topN] = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+    const same = items.length >= 4 && topN / items.length >= 0.6
+      ? ` <span class="err">· Diqqat: ${topN} ta savolning to'g'ri javobi «${topL}».${T.shuffleOpts === false ? " Pastdagi «aralashtirish» belgisini yoqing." : " Variantlar o'quvchilarga aralashtirib ko'rsatiladi."}</span>` : "";
+    $("csvInfo").innerHTML = `<span class="okt">✓ «${esc(file.name)}»: ${items.length} ta savol, maksimal ${max} ball</span>` + (bad.length ? ` <span class="err">· O'qilmagan qatorlar: ${bad.slice(0, 15).join(", ")}</span>` : "") + same;
   } catch (err) { fail(err); }
 });
+$("shuffleOpts").onchange = e => {
+  updateDoc(tref(), { shuffleOpts: e.target.checked })
+    .then(() => toast(e.target.checked ? "Variantlar aralashtirib ko'rsatiladi" : "Variantlar CSV'dagi tartibda ko'rsatiladi"))
+    .catch(fail);
+};
 function renderQuestions(){
   $("qTable").innerHTML = QS.length ? `<tr><th>#</th><th>Savol</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Javob</th><th>Ball</th></tr>` +
     QS.map((q, i) => `<tr><td>${i + 1}</td><td style="min-width:260px">${esc(q.q)}</td>${q.o.map((o, k) => `<td class="optc ${KEY[i] === LET[k] ? "right" : ""}">${esc(o)}</td>`).join("")}<td><span class="key">${esc(KEY[i] || "?")}</span></td><td class="num">${q.b}</td></tr>`).join("")
